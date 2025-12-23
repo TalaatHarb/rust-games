@@ -120,8 +120,10 @@ pub fn enemy_movement(
 }
 
 pub fn enemy_update_direction(
+    mut commands: Commands,
     mut enemy_query: Query<(&Transform, &mut Enemy)>,
     window_query: Query<&Window>,
+    asset_server: Res<AssetServer>,
 ) {
     if let Ok(window) = window_query.single() {
         let half_sprite_size = SPRITE_SIZE / 2.0;
@@ -132,23 +134,25 @@ pub fn enemy_update_direction(
 
         for (transform, mut enemy) in enemy_query.iter_mut() {
             let mut dir = enemy.direction;
+            let mut bounced = false;
 
-            if transform.translation.x <= x_min && dir.x < 0.0 {
+            if transform.translation.x <= x_min || transform.translation.x >= x_max {
                 dir.x = -dir.x;
-            } else if transform.translation.x >= x_max && dir.x > 0.0 {
-                dir.x = -dir.x;
+                bounced = true;
             }
 
-            if transform.translation.y <= y_min && dir.y < 0.0 {
+            if transform.translation.y <= y_min || transform.translation.y >= y_max {
                 dir.y = -dir.y;
-            } else if transform.translation.y >= y_max && dir.y > 0.0 {
-                dir.y = -dir.y;
+                bounced = true;
             }
 
             if dir.length() > 0.0 {
                 enemy.direction = dir.normalize();
-            } else {
-                enemy.direction = Vec3::ZERO;
+            }
+
+            if bounced {
+                let bounce_sound = asset_server.load("audio/pluck_001.ogg");
+                commands.spawn((AudioPlayer::new(bounce_sound),));
             }
         }
     }
